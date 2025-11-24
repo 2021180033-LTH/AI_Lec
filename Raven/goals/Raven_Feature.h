@@ -38,6 +38,11 @@ public:
   //is carrying a RL and a RG and has max ammo for the RG but only half max
   //for the RL the rating will be 1/3 + 1/6 + 0 = 0.5
   static double TotalWeaponStrength(Raven_Bot* pBot);
+
+  static double WeaponThreat(Raven_Bot* pBot, Raven_Bot* pTarget);
+  static double FacingAtMe(Raven_Bot* pBot, Raven_Bot* pTarget);
+  static double Proximity(Raven_Bot* pBot, Raven_Bot* pTarget);
+  static double RecentDamageFrom(Raven_Bot* pBot, Raven_Bot* pTarget);
 };
 
 

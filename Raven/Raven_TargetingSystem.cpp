@@ -3,6 +3,8 @@
 #include "Raven_SensoryMemory.h"
 #include <algorithm>
 
+#include "goals/Raven_Feature.h"
+
 
 
 //-------------------------------- ctor ---------------------------------------
@@ -18,45 +20,31 @@ Raven_TargetingSystem::Raven_TargetingSystem(Raven_Bot* owner):m_pOwner(owner),
 //-----------------------------------------------------------------------------
 void Raven_TargetingSystem::Update()
 {
-    m_pCurrentTarget = 0;
+    double MaxThreat = -1.0;
+    Raven_Bot* pBestTarget = 0;
 
-    std::list<Raven_Bot* > SensedBots = m_pOwner->GetSensoryMem()->GetListOfRecentlySensedOpponents();
+    std::list<Raven_Bot*> SensedBots = m_pOwner->GetSensoryMem()->GetListOfRecentlySensedOpponents();
 
-    auto ThreatScore = [&](Raven_Bot* opp)->double 
-        {
-            if (!opp) return false;
-
-            double recent = m_pOwner->GetSensoryMem()->RecentDamageFrom(opp);
-
-            double recentNorm = recent / 100.0;
-            recentNorm = (recentNorm > 1.0 ? 1.0 : (recentNorm < 0.0 ? 0.0 : recentNorm));
-
-            double dist = Vec2DDistance(m_pOwner->Pos(), opp->Pos());
-            double prox = 1.0 / (1.0 + dist / 1000.0);
-
-            const double wRecent = 0.99;
-            const double wDist = 0.01;
-
-            return wRecent * recentNorm + wDist * prox;
-        };
-
-    double best = -1e9;
-
-    for (auto it = SensedBots.begin(); it != SensedBots.end(); ++it)
+    for (std::list<Raven_Bot*>::iterator curBot = SensedBots.begin(); curBot != SensedBots.end(); ++curBot)
     {
-        Raven_Bot* bot = *it;
-
-        if (bot->isAlive() && bot != m_pOwner)
+        if ((*curBot)->isAlive() && (*curBot != m_pOwner))
         {
-            double sc = ThreatScore(bot);
+            double w_weapon = Raven_Feature::WeaponThreat(m_pOwner, *curBot);
+            double w_facing = Raven_Feature::FacingAtMe(m_pOwner, *curBot);
+            double w_prox = Raven_Feature::Proximity(m_pOwner, *curBot);
+            double w_damage = Raven_Feature::RecentDamageFrom(m_pOwner, *curBot);
 
-            if (sc > best)
+            double Threat = (0.4 * w_weapon) + (0.3 * w_facing) + (0.2 + w_prox) + (0.1 * w_damage);
+
+            if (Threat > MaxThreat)
             {
-                best = sc;
-                m_pCurrentTarget = bot;
+                MaxThreat = Threat;
+                pBestTarget = *curBot;
             }
         }
     }
+
+    m_pCurrentTarget = pBestTarget;
 }
 
 

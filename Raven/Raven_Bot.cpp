@@ -1,4 +1,5 @@
 #include "Raven_Bot.h"
+
 #include "misc/Cgdi.h"
 #include "misc/utils.h"
 #include "2D/Transformations.h"
@@ -19,6 +20,8 @@
 #include "goals/Raven_Goal_Types.h"
 #include "goals/Goal_Think.h"
 
+#include "Game/EntityManager.h"
+#include "Time/CrudeTimer.h"
 
 #include "Debug/DebugConsole.h"
 
@@ -144,6 +147,8 @@ void Raven_Bot::Update()
        m_pBrain->Arbitrate(); 
     }
 
+    GetSensoryMem()->DecayAllRecentDamage(Clock->GetCurrentTime(), 1.5);
+
     //update the sensory memory with any visual stimulus
     if (m_pVisionUpdateRegulator->isReady())
     {
@@ -233,7 +238,14 @@ bool Raven_Bot::HandleMessage(const Telegram& msg)
     //the extra info field of the telegram carries the amount of damage
     ReduceHealth(DereferenceToType<int>(msg.ExtraInfo));
 
-    m_pSensoryMem->AddRecentDamageByID(msg.Sender, DereferenceToType<int>(msg.ExtraInfo));
+    if (msg.Sender != SENDER_ID_IRRELEVANT)
+    {
+        Raven_Bot* pAttacker = static_cast<Raven_Bot*>(EntityMgr->GetEntityFromID(msg.Sender));
+        if (pAttacker)
+        {
+            GetSensoryMem()->AddRecentDamage(pAttacker, (double)DereferenceToType<int>(msg.ExtraInfo));
+        }
+    }
 
     //if this bot is now dead let the shooter know
     if (isDead())

@@ -5,6 +5,7 @@
 #include "../Raven_WeaponSystem.h"
 #include "../Raven_ObjectEnumerations.h"
 #include "../lua/Raven_Scriptor.h"
+#include "../Raven_SensoryMemory.h"
 
 //-----------------------------------------------------------------------------
 double Raven_Feature::DistanceToItem(Raven_Bot* pBot, int ItemType)
@@ -103,4 +104,54 @@ double Raven_Feature::Health(Raven_Bot* pBot)
 {
   return (double)pBot->Health() / (double)pBot->MaxHealth();
 
+}
+
+double Raven_Feature::WeaponThreat(Raven_Bot* pBot, Raven_Bot* pTarget)
+{
+    if (!pTarget) return 0.0;
+
+    int weapon = pTarget->GetWeaponSys()->GetCurrentWeapon()->GetType();
+    double dist = pBot->Pos().Distance(pTarget->Pos());
+
+    double maxThreat = 0.0;
+    double dMax = 1000.0;
+
+    switch (weapon) {
+    case type_rail_gun:         maxThreat = 1.0; dMax = 1000.0; break;
+    case type_rocket_launcher:  maxThreat = 0.9; dMax =  800.0; break;
+    case type_shotgun:          maxThreat = 0.8; dMax =  300.0; break;
+    default:                    maxThreat = 0.3; dMax =  500.0; break;
+    }
+
+    double proximity = 1.0 - (dist / dMax);
+    if (proximity < 0.0) proximity = 0.0;
+
+    return maxThreat * proximity;
+}
+
+double Raven_Feature::FacingAtMe(Raven_Bot* pBot, Raven_Bot* pTarget)
+{
+    if (!pTarget) return 0.0;
+
+    Vector2D toMe = pBot->Pos() = pTarget->Pos();
+    toMe.Normalize();
+
+    double dot = pTarget->Facing().Dot(toMe);
+    return (dot + 1.0) / 2.0;
+}
+
+double Raven_Feature::Proximity(Raven_Bot* pBot, Raven_Bot* pTarget)
+{
+    const double Dmax = 500.0;
+    double dist = pBot->Pos().Distance(pTarget->Pos());
+
+    double val = 1.0 - (dist / Dmax);
+    if (val < 0.0)val = 0.0;
+
+    return val;
+}
+
+double Raven_Feature::RecentDamageFrom(Raven_Bot* pBot, Raven_Bot* pTarget)
+{
+    return pBot->GetSensoryMem()->RecentDamageFrom(pTarget, 1.5, 100.0);
 }

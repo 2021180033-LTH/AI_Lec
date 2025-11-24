@@ -46,17 +46,19 @@ public:
   //set to true if there is no obstruction between the opponent and the owner, 
   //permitting a shot.
   bool        bShootable;
+
+  double recentDamageScore;
+  double tLastDamageUpdate;
   
 
   MemoryRecord():fTimeLastSensed(-999),
             fTimeBecameVisible(-999),
             fTimeLastVisible(0),
             bWithinFOV(false),
-            bShootable(false)
+            bShootable(false),
+            recentDamageScore(0.0),
+            tLastDamageUpdate(0.0)
   {}
-
-  double recentDamageScore = 0.0;
-  double tLastDamageUpdate = 0.0;
 };
 
 
