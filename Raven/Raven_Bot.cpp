@@ -148,7 +148,9 @@ void Raven_Bot::Update()
     if (m_pVisionUpdateRegulator->isReady())
     {
       m_pSensoryMem->UpdateVision();
+      m_pSensoryMem->DecayAllRecentDamage(1.0 / FrameRate);
     }
+    
   
     //select the appropriate weapon to use from the weapons currently in
     //the inventory
@@ -230,6 +232,8 @@ bool Raven_Bot::HandleMessage(const Telegram& msg)
 
     //the extra info field of the telegram carries the amount of damage
     ReduceHealth(DereferenceToType<int>(msg.ExtraInfo));
+
+    m_pSensoryMem->AddRecentDamageByID(msg.Sender, DereferenceToType<int>(msg.ExtraInfo));
 
     //if this bot is now dead let the shooter know
     if (isDead())

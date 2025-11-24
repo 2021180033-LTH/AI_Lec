@@ -54,6 +54,9 @@ public:
             bWithinFOV(false),
             bShootable(false)
   {}
+
+  double recentDamageScore = 0.0;
+  double tLastDamageUpdate = 0.0;
 };
 
 
@@ -84,6 +87,8 @@ private:
   //by UpdateWithSoundSource & UpdateVision)
   void       MakeNewRecordIfNotAlreadyPresent(Raven_Bot* pBot);
 
+  static MemoryRecord& Upsert(MemoryMap& map, Raven_Bot* key);
+
 public:
 
   Raven_SensoryMemory(Raven_Bot* owner, double MemorySpan);
@@ -111,6 +116,11 @@ public:
   std::list<Raven_Bot*> GetListOfRecentlySensedOpponents()const;
 
   void     RenderBoxesAroundRecentlySensed()const;
+
+  void AddRecentDamage(Raven_Bot* attacker, double amount);
+  void AddRecentDamageByID(int attackerId, double amount);
+  double RecentDamageFrom(const Raven_Bot* attacker, double tau = 1.5, double norm = 30.0) const;
+  void DecayAllRecentDamage(double now, double tau = 1.5);
 
 };
 

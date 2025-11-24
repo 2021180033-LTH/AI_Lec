@@ -1,3 +1,4 @@
+// 2021180033 이태현 Raven 과제
 #pragma warning (disable:4786)
 #include <windows.h>
 #include <time.h>
@@ -22,7 +23,7 @@
 //--------------------------------- Globals ------------------------------
 //------------------------------------------------------------------------
 
-char* g_szApplicationName = "Raven";
+char* g_szApplicationName = "Raven_2021180033";
 char*	g_szWindowClassName = "MyWindowClass";
 
 

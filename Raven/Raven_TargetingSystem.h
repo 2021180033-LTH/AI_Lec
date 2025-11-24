@@ -12,6 +12,7 @@
 //-----------------------------------------------------------------------------
 #include "2d/Vector2D.h"
 #include <list>
+#include <algorithm>
 
 
 class Raven_Bot;

@@ -36,7 +36,7 @@ void Goal_AttackTarget::Activate()
     Vector2D dummy;
     if (m_pOwner->canStepLeft(dummy) || m_pOwner->canStepRight(dummy))
     {
-      AddSubgoal(new Goal_DodgeSideToSide(m_pOwner));
+      //AddSubgoal(new Goal_DodgeSideToSide(m_pOwner));
     }
 
     //if not able to strafe, head directly at the target's position 

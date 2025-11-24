@@ -1,6 +1,7 @@
 #include "Raven_TargetingSystem.h"
 #include "Raven_Bot.h"
 #include "Raven_SensoryMemory.h"
+#include <algorithm>
 
 
 
@@ -17,31 +18,46 @@ Raven_TargetingSystem::Raven_TargetingSystem(Raven_Bot* owner):m_pOwner(owner),
 //-----------------------------------------------------------------------------
 void Raven_TargetingSystem::Update()
 {
-  double ClosestDistSoFar = MaxDouble;
-  m_pCurrentTarget       = 0;
+    m_pCurrentTarget = 0;
 
-  //grab a list of all the opponents the owner can sense
-  std::list<Raven_Bot*> SensedBots;
-  SensedBots = m_pOwner->GetSensoryMem()->GetListOfRecentlySensedOpponents();
-  
-  std::list<Raven_Bot*>::const_iterator curBot = SensedBots.begin();
-  for (curBot; curBot != SensedBots.end(); ++curBot)
-  {
-    //make sure the bot is alive and that it is not the owner
-    if ((*curBot)->isAlive() && (*curBot != m_pOwner) )
+    std::list<Raven_Bot* > SensedBots = m_pOwner->GetSensoryMem()->GetListOfRecentlySensedOpponents();
+
+    auto ThreatScore = [&](Raven_Bot* opp)->double 
+        {
+            if (!opp) return false;
+
+            double recent = m_pOwner->GetSensoryMem()->RecentDamageFrom(opp);
+
+            double recentNorm = recent / 100.0;
+            recentNorm = (recentNorm > 1.0 ? 1.0 : (recentNorm < 0.0 ? 0.0 : recentNorm));
+
+            double dist = Vec2DDistance(m_pOwner->Pos(), opp->Pos());
+            double prox = 1.0 / (1.0 + dist / 1000.0);
+
+            const double wRecent = 0.99;
+            const double wDist = 0.01;
+
+            return wRecent * recentNorm + wDist * prox;
+        };
+
+    double best = -1e9;
+
+    for (auto it = SensedBots.begin(); it != SensedBots.end(); ++it)
     {
-      double dist = Vec2DDistanceSq((*curBot)->Pos(), m_pOwner->Pos());
+        Raven_Bot* bot = *it;
 
-      if (dist < ClosestDistSoFar)
-      {
-        ClosestDistSoFar = dist;
-        m_pCurrentTarget = *curBot;
-      }
+        if (bot->isAlive() && bot != m_pOwner)
+        {
+            double sc = ThreatScore(bot);
+
+            if (sc > best)
+            {
+                best = sc;
+                m_pCurrentTarget = bot;
+            }
+        }
     }
-  }
 }
-
-
 
 
 bool Raven_TargetingSystem::isTargetWithinFOV()const

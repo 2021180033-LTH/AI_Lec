@@ -3,6 +3,7 @@
 #include "time/crudetimer.h"
 #include "misc/cgdi.h"
 #include "misc/Stream_Utility_Functions.h"
+#include <math.h>
 
 //------------------------------- ctor ----------------------------------------
 //-----------------------------------------------------------------------------
@@ -134,6 +135,94 @@ void Raven_SensoryMemory::UpdateVision()
   }//next bot
 }
 
+MemoryRecord& Raven_SensoryMemory::Upsert(MemoryMap& map, Raven_Bot* key)
+{
+    auto it = map.find(key);
+    if (it == map.end())
+        it = map.insert(MemoryMap::value_type(key, MemoryRecord{})).first;
+    return it->second;
+}
+
+void Raven_SensoryMemory::AddRecentDamage(Raven_Bot* attacker, double amount)
+{
+    if (!attacker || amount <= 0.0) return;
+
+    MemoryRecord& rec = Upsert(m_MemoryMap, attacker);
+
+    const double now = Clock->GetCurrentTime();
+    const double tau = 1.5;
+
+    if (rec.tLastDamageUpdate > 0.0)
+    {
+        const double dt = now - rec.tLastDamageUpdate;
+        if (dt > 0.0) rec.recentDamageScore *= std::exp(-dt / tau);
+    }
+
+    rec.recentDamageScore += amount;
+    rec.tLastDamageUpdate = now;
+}
+
+void Raven_SensoryMemory::AddRecentDamageByID(int attackerID, double amount)
+{
+    Raven_Bot* attacker = nullptr;
+
+    for (auto& kv : m_MemoryMap) {
+        Raven_Bot* bot = kv.first;
+        if (bot && bot->ID() == attackerID) {
+            attacker = bot;
+            break;
+        }
+    }
+
+    if (!attacker) {
+        return;
+    }
+
+    AddRecentDamage(attacker, amount);
+}
+
+double Raven_SensoryMemory::RecentDamageFrom(const Raven_Bot* attacker, double tau, double norm) const
+{
+    if (!attacker) return 0.0;
+
+    auto it = m_MemoryMap.find(const_cast<Raven_Bot*>(attacker));
+    if (it == m_MemoryMap.end()) return 0.0;
+
+    const MemoryRecord& rec = it->second;
+
+    double decayed = rec.recentDamageScore;
+    if (rec.tLastDamageUpdate > 0.0)
+    {
+        const double now = Clock->GetCurrentTime();
+        const double dt = now - rec.tLastDamageUpdate;
+        if (dt > 0.0) decayed *= std::exp(-dt / tau);
+    }
+
+    if (norm > 0.0) {
+        double x = decayed / norm;
+        if (x < 0.0) x = 0.0; else if (x > 1.0) x = 1.0;
+        return x;
+    }
+    return decayed;
+}
+
+void Raven_SensoryMemory::DecayAllRecentDamage(double now, double tau)
+{
+    if (tau <= 0.0) return;
+
+    for (auto& kv : m_MemoryMap)
+    {
+        MemoryRecord& rec = kv.second;
+        if (rec.recentDamageScore > 0.0 && rec.tLastDamageUpdate > 0.0)
+        {
+            const double dt = now - rec.tLastDamageUpdate;
+            if (dt > 0.0) {
+                rec.recentDamageScore *= std::exp(-dt / tau);
+                rec.tLastDamageUpdate = now;
+            }
+        }
+    }
+}
 
 //------------------------ GetListOfRecentlySensedOpponents -------------------
 //
